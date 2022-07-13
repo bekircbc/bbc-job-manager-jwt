@@ -1,45 +1,82 @@
-import { useState } from 'react'
-import logo from './logo.svg'
-import './App.css'
+import { useState, useEffect } from "react";
+import "./App.scss";
+import axios from "axios";
+
+const backend_url = import.meta.env.VITE_BACKEND_URL;
+
+const backend_base_url = "http://localhost:30445";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [jobSources, setJobSources] = useState([]);
+  const [currentUser, setCurrentUser] = useState({});
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+
+  const getJobSources = async () => {
+    setJobSources((await axios.get(backend_url)).data.jobSources);
+  };
+
+  const userIsLoggedIn = () => {
+    return Object.keys(currentUser).length > 0;
+  };
+
+  useEffect(() => {
+    if (userIsLoggedIn()) {
+      getJobSources();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (userIsLoggedIn()) {
+      getJobSources();
+    }
+  }, []);
+
+  const handleLoginButton = async () => {
+    const _currentUser = (await axios.post(backend_base_url + "/login")).data;
+    getJobSources();
+    setCurrentUser(_currentUser);
+  };
 
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>Hello Vite + React!</p>
-        <p>
-          <button type="button" onClick={() => setCount((count) => count + 1)}>
-            count is: {count}
-          </button>
-        </p>
-        <p>
-          Edit <code>App.jsx</code> and save to test HMR updates.
-        </p>
-        <p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          {' | '}
-          <a
-            className="App-link"
-            href="https://vitejs.dev/guide/features.html"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Vite Docs
-          </a>
-        </p>
-      </header>
+      <h1>BBC Job Manager</h1>
+      {userIsLoggedIn() ? (
+        <>
+          <p>There are {jobSources.length} job sources:</p>
+          <ul>
+            {jobSources.map((jobSource, i) => {
+              return <li key={i}>{jobSource.name}</li>;
+            })}
+          </ul>
+        </>
+      ) : (
+        <form className="login">
+          <div className="row">
+            username:{" "}
+            <input
+              onChange={(e) => setUsername(e.target.value)}
+              value={username}
+              type="text"
+            />
+          </div>
+          <div className="row">
+            password:{" "}
+            <input
+              onChange={(e) => setPassword(e.target.value)}
+              value={password}
+              type="password"
+            />
+          </div>
+          <div className="row">
+            <button type="button" onClick={handleLoginButton}>
+              Login
+            </button>
+          </div>
+        </form>
+      )}
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
