@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import "./App.scss";
 import axios from "axios";
 
-const backend_url = import.meta.env.VITE_BACKEND_URL;
+// const backend_url = import.meta.env.VITE_BACKEND_URL;
 
 const backend_base_url = "http://localhost:30445";
 
@@ -11,31 +11,60 @@ function App() {
   const [currentUser, setCurrentUser] = useState({});
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-
-  const getJobSources = async () => {
-    setJobSources((await axios.get(backend_url)).data.jobSources);
-  };
+  const [message, setMessage] = useState("");
 
   const userIsLoggedIn = () => {
     return Object.keys(currentUser).length > 0;
   };
 
-  useEffect(() => {
-    if (userIsLoggedIn()) {
-      getJobSources();
-    }
-  }, []);
+  const getJobSources = () => {
+    async () => {
+      setJobSources((await axios.get(backend_base_url + "/job-sources")).data);
+    };
+  };
 
   useEffect(() => {
-    if (userIsLoggedIn()) {
-      getJobSources();
-    }
+    (async () => {
+      const response = await fetch(backend_base_url + "/maintain-login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          authorization: "Bearer " + localStorage.getItem("token"),
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentUser(data.user);
+        getJobSources();
+      } else {
+        setCurrentUser({});
+      }
+    })();
   }, []);
 
-  const handleLoginButton = async () => {
-    const _currentUser = (await axios.post(backend_base_url + "/login")).data;
-    getJobSources();
-    setCurrentUser(_currentUser);
+  const handleLoginButton = async (e) => {
+    e.preventdefault();
+    const response = await fetch(backend_base_url + "/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password }),
+    });
+    setUsername("");
+    setPassword("");
+    if (response.ok) {
+      const data = await response.json();
+      console.log(data);
+      getJobSources();
+      setCurrentUser(data.user);
+      localStorage.setItem("token", data.token);
+    } else {
+      setMessage("bad login");
+    }
+  };
+
+  const handleLogoutButton = () => {
+    localStorage.removeItem("token");
+    setCurrentUser({});
   };
 
   return (
@@ -49,9 +78,12 @@ function App() {
               return <li key={i}>{jobSource.name}</li>;
             })}
           </ul>
+          <button className="logout" onClick={handleLogoutButton}>
+            Logout
+          </button>
         </>
       ) : (
-        <form className="login">
+        <form className="login" onSubmit={handleLoginButton}>
           <div className="row">
             username:{" "}
             <input
@@ -69,10 +101,9 @@ function App() {
             />
           </div>
           <div className="row">
-            <button type="button" onClick={handleLoginButton}>
-              Login
-            </button>
+            <button>Login</button>
           </div>
+          <div className="row">{message}</div>
         </form>
       )}
     </div>
