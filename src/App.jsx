@@ -18,11 +18,11 @@ function App() {
 	};
 
 	const getJobSources = () => {
-		async () => {
+		(async () => {
 			setJobSources(
 				(await axios.get(backend_base_url + '/job-sources')).data
 			);
-		};
+		})();
 	};
 
 	useEffect(() => {
